@@ -1,0 +1,16 @@
+# .NET build output
+**/bin/
+**/obj/
+
+# IDE and local files
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Local data and secrets
+*.db
+*.db-shm
+*.db-wal
+.env
+appsettings.Development.json
