@@ -3,11 +3,12 @@ using EveryNode.Api.Models;
 
 namespace EveryNode.Api.MockData;
 
-public static class CreateRandomField
+public static class MockDataUtils
 {
     static Random r = new Random();
 
     private const int NUMBER_OF_RANDOM_USERS = 10;
+    private const int MAX_NODES_BUDGET = 3;
     
     private static int nodesIdStore = 0;
     private static int edgesIdStore = 0;
@@ -20,15 +21,19 @@ public static class CreateRandomField
         return (float)r.NextDouble() * (max - min) + min;
     }
     
-    private static void PopulateRandomUsers()
+    public static void PopulateRandomUsers()
     {
-        int newUserId = usersIdStore++;
-        
-        randomUsers.Add(new User
+        for (int i = 0; i < NUMBER_OF_RANDOM_USERS; i++)
         {
-            Id = newUserId,
-            Username = "Bob" + newUserId,
-        });
+            int newUserId = usersIdStore++;
+            
+            randomUsers.Add(new User
+            {
+                Id = newUserId,
+                Username = "Bob" + newUserId,
+                NodesBudget = r.Next(0, MAX_NODES_BUDGET)
+            });
+        }
     }
     
     private static Node RandomNode()
@@ -43,8 +48,18 @@ public static class CreateRandomField
             Owner = randomUsers[randomUserId]
         };
     }
+
+    public static List<User> GetRandomUsers()
+    {
+        return randomUsers;
+    }
+
+    public static User GetRandomUser(List<User> users)
+    {
+        return users[r.Next(0, randomUsers.Count)];
+    }
     
-    public static Field Create(int numberOfNodes, int maxNumberOfEdges)
+    public static void PopulateField(int numberOfNodes, int maxNumberOfEdges, Field field)
     {
         PopulateRandomUsers();
         
@@ -73,13 +88,8 @@ public static class CreateRandomField
                 End = nodes[randomEndId]
             });
         }
-        
-        Field randomField = new Field
-        {
-            Nodes =  nodes,
-            Edges = edges,
-        };
-        
-        return randomField;
+
+        field.Nodes = nodes;
+        field.Edges = edges;
     }
 }
