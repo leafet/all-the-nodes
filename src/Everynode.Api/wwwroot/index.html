@@ -1,11 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>EveryNode</title>
-    <script src="./js/app.js" defer="defer"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/app.js" defer></script>
 </head>
 <body>
-    <H1>Loading field</H1>
+<header class="site-header">
+    <h1>EveryNode</h1>
+    <span id="LoadingHeader" class="status" role="status">
+            Загрузка...
+        </span>
+</header>
+
+<main class="page">
+    <section class="field-section" aria-labelledby="field-title">
+        <div class="field-heading">
+            <div>
+                <p class="eyebrow">Общий граф</p>
+                <h2 id="field-title">Поле</h2>
+            </div>
+
+            <div class="counters">
+                <p>Вершин: <strong id="NodesCount">—</strong></p>
+                <p>Связей: <strong id="EdgesCount">—</strong></p>
+            </div>
+        </div>
+
+        <div class="canvas">
+            <svg
+                    id="GraphCanvas"
+                    viewBox="0 0 1000 600"
+                    role="img"
+                    aria-label="Общее поле графа">
+            </svg>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <span>Посетитель: <strong id="UserID">—</strong></span>
+    <span>Доступно вершин: <strong id="UserNodesBudget">—</strong></span>
+    <span>Доступно связей: <strong id="UserEdgesBudget">—</strong></span>
+</footer>
 </body>
 </html>
