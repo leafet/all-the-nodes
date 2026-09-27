@@ -25,12 +25,17 @@ namespace EveryNode.Api.Migrations
                     b.Property<int>("EndId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("OwnerId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("StartId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.HasIndex("EndId");
+
+                    b.HasIndex("OwnerId");
 
                     b.HasIndex("StartId");
 
@@ -91,6 +96,12 @@ namespace EveryNode.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("EveryNode.Api.Models.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("EveryNode.Api.Models.Node", "Start")
                         .WithMany()
                         .HasForeignKey("StartId")
@@ -98,6 +109,8 @@ namespace EveryNode.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("End");
+
+                    b.Navigation("Owner");
 
                     b.Navigation("Start");
                 });

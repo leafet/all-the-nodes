@@ -1,27 +1,79 @@
 using EveryNode.Api.DataStore;
 using EveryNode.Api.Models;
 using EveryNode.Api.Models.ActionModels;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>
     (options => options.UseSqlite(builder.Configuration.GetConnectionString("Sqlite")));
 
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "Everynode.Browser";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    });
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
-app.MapPost("/AddUser", async (CreateUserRequest createUserRequest, AppDbContext db) =>
-{
-    User newUser = new User
-    {
-        Username = createUserRequest.Username,
-        NodesBudget = 3,
-        EdgesBudget = 5
-    };
-    newUser.AdditionalData = createUserRequest.AdditionalData;
+app.UseAuthentication();
+app.UseAuthorization();
 
-    await db.Users.AddAsync(newUser);
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.MapPost("/session", async (HttpContext http, AppDbContext db) =>
+{
+    var idText = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    if (int.TryParse(idText, out var id))
+    {
+        var existingUser = await db.Users.FindAsync(id);
+        if (existingUser is not null)
+        {
+            return Results.Ok(new
+            {
+                existingUser.Id,
+                existingUser.NodesBudget,
+                existingUser.EdgesBudget
+            });
+        }
+    }
+
+    var user = new User
+    {
+        Username = $"Guest-{Guid.NewGuid():N}",
+        NodesBudget = 3,
+        EdgesBudget = 6
+    };
+    
+    db.Users.Add(user);
+    
     await db.SaveChangesAsync();
+    
+    var identity = new ClaimsIdentity(
+        [new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())],
+        CookieAuthenticationDefaults.AuthenticationScheme);
+    
+    await http.SignInAsync(
+        CookieAuthenticationDefaults.AuthenticationScheme,
+        new ClaimsPrincipal(identity),
+        new AuthenticationProperties
+        {
+            IsPersistent = true,
+            ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
+        });
+    
+    return Results.Ok(new { user.Id, user.NodesBudget, user.EdgesBudget });
 });
 
 app.MapGet("/Field", async (AppDbContext db) =>
@@ -50,14 +102,17 @@ app.MapGet("/Field", async (AppDbContext db) =>
     return field;
 });
 
-app.MapGet("/users", async (AppDbContext db) => await db.Users.ToListAsync());
-
-app.MapPost("/AddEdge", async (CreateEdgeRequest req, AppDbContext db) =>
+app.MapPost("/AddEdge", async (HttpContext http, CreateEdgeRequest req, AppDbContext db) =>
 {
-    //Временное получение пользователя, далее будет ID с браузера
-    List<User> users = await db.Users.ToListAsync();
+    var idText = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
     
-    User placingUser = users.First(u => u.Id == 1);
+    if (!int.TryParse(idText, out var userId))
+        return Results.Unauthorized();
+    
+    var placingUser = await db.Users.FindAsync(userId);
+
+    if (placingUser is null)
+        return Results.Unauthorized();
     
     if (!db.Nodes.Select(n => n.Id).Contains(req.StartId))
         return Results.BadRequest($"Can't find start node {req.StartId}");
@@ -83,6 +138,7 @@ app.MapPost("/AddEdge", async (CreateEdgeRequest req, AppDbContext db) =>
 
     Edge edgeToAdd = new Edge
     {
+        Owner = placingUser,
         Start = startNode,
         End = endNode,
     };
@@ -93,14 +149,20 @@ app.MapPost("/AddEdge", async (CreateEdgeRequest req, AppDbContext db) =>
     await db.SaveChangesAsync();
     
     return Results.Ok(edgeToAdd);
-});
+}).RequireAuthorization();
 
-app.MapPost("/addNode", async (CreateNodeRequest pos, AppDbContext db) =>
+app.MapPost("/addNode", async (HttpContext http, CreateNodeRequest pos, AppDbContext db) =>
 {   
-    //Временное получение пользователя, далее будет ID с браузера
-    List<User> users = await db.Users.ToListAsync();
+    var idText = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
     
-    User placingUser = users.First();
+    if (!int.TryParse(idText, out var userId))
+        return Results.Unauthorized();
+    
+    var placingUser = await db.Users.FindAsync(userId);
+
+    if (placingUser is null)
+        return Results.Unauthorized();
+
     
     if (placingUser.NodesBudget == 0)
         return Results.BadRequest($"{placingUser.Username} Insufficient budget");
@@ -119,6 +181,6 @@ app.MapPost("/addNode", async (CreateNodeRequest pos, AppDbContext db) =>
     
     return Results.Ok(nodeToAdd);
 
-});
+}).RequireAuthorization();
 
 app.Run();

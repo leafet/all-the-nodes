@@ -3,6 +3,8 @@
 public class Edge
 {
     public int Id { get; set; }
+    
+    public required User Owner { get; set; }
     public required Node Start { get; set; }
     public required Node End { get; set; }
 }
