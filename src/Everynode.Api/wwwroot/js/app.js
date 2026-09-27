@@ -1,3 +1,5 @@
+let pointerStartedOnNode = false;
+
 async function startSession() {
     const sessionEndpoint = "/session";
     const response = await fetch(sessionEndpoint, {method: "POST"});
@@ -38,9 +40,34 @@ async function sendNode(x, y){
     }
 }
 
+async function sendEdge(StartId, EndId){
+    const sendEdgeEndpoint = "/addEdge";
+
+    const response = await fetch(sendEdgeEndpoint,
+        {method: "POST",
+            headers:{
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ StartId, EndId }),
+        });
+
+    if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || `Response status: ${response.status}`);
+    }
+}
+
 async function handleCanvasClick(event) {
+    if (pointerStartedOnNode) return;
+    
     const svg = event.currentTarget;
 
+    if (event.target instanceof SVGCircleElement) {
+        const nodeId = Number(event.target.dataset.nodeId);
+        console.log("Clicked on node:", nodeId);
+        return;
+    }
+    
     // Пока реагируем только на пустое место, не на вершину или ребро.
     if (event.target !== svg) return;
 
@@ -109,6 +136,7 @@ function renderNodes(nodes, svg){
         circle.setAttribute("cy", `${element.y}`);
         circle.setAttribute("r", "8");
         circle.setAttribute("fill", "#2563eb");
+        circle.setAttribute("data-node-id", element.id);
 
         svg.appendChild(circle);
     })
@@ -155,10 +183,56 @@ async function refreshView(svg){
     }
 }
 
+function setupEdgeGesture(svg){
+    
+    let startNodeId = null;
+    
+    svg.addEventListener("pointerdown", event => {
+        pointerStartedOnNode = event.target instanceof SVGCircleElement;
+        
+        if (!pointerStartedOnNode) return;
+        
+        startNodeId = Number(event.target.dataset.nodeId);
+        console.log("Start:", startNodeId);
+    })
+    
+    window.addEventListener("pointerup", async event => {
+        if (startNodeId === null) return;
+
+        const target = document.elementFromPoint(
+            event.clientX,
+            event.clientY
+        )
+
+        if (target instanceof SVGCircleElement) {
+            const endNodeId = Number(target.dataset.nodeId);
+
+            if (endNodeId !== startNodeId) {
+                await sendEdge(startNodeId, endNodeId);
+                
+                await refreshView(svg);
+            }
+        }
+
+        startNodeId = null
+
+    })
+
+    window.addEventListener("pointercancel", () => {
+        startNodeId = null;
+    })
+
+    window.addEventListener("click", () => {
+        pointerStartedOnNode = false;
+    });
+}
+
 async function startApp(){
     const svg = document.getElementById("GraphCanvas");
     
     svg.addEventListener("click", handleCanvasClick);
+    
+    setupEdgeGesture(svg);
     
     await refreshView(svg)
 }

@@ -120,8 +120,8 @@ app.MapPost("/AddEdge", async (HttpContext http, CreateEdgeRequest req, AppDbCon
     if (!db.Nodes.Select(n => n.Id).Contains(req.EndId))
         return Results.BadRequest($"Can't find end node {req.EndId}");
     
-    Node startNode = await db.Nodes.FirstAsync(n => n.Id == req.StartId);
-    Node endNode = await db.Nodes.FirstAsync(n => n.Id == req.EndId);
+    Node startNode = await db.Nodes.Include(node => node.Owner).FirstAsync(n => n.Id == req.StartId);
+    Node endNode = await db.Nodes.Include(node => node.Owner).FirstAsync(n => n.Id == req.EndId);
     
     if (placingUser.EdgesBudget == 0)
         return Results.BadRequest($"{placingUser.Username} Insufficient budget");
