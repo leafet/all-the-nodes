@@ -109,6 +109,11 @@ body {
     color: #1b2638;
 }
 
+.error-holder{
+    color: #95042f;
+    margin-left: auto;
+}
+
 @media (max-width: 600px) {
     .site-header,
     .site-footer {

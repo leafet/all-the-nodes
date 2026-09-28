@@ -1,5 +1,16 @@
 let pointerStartedOnNode = false;
 
+const loadingHeaderField = document.getElementById("LoadingHeader");
+
+const idField = document.getElementById("UserID");
+const nodesBudgetField = document.getElementById("UserNodesBudget");
+const edgesBudgetField = document.getElementById("UserEdgesBudget");
+
+const nodesCountField = document.getElementById("NodesCount");
+const edgesCountField = document.getElementById("EdgesCount");
+
+const errorField = document.getElementById("ErrorHolder");
+
 async function startSession() {
     const sessionEndpoint = "/session";
     const response = await fetch(sessionEndpoint, {method: "POST"});
@@ -92,6 +103,8 @@ async function handleCanvasClick(event) {
         await refreshView(svg)
     } catch (e) {
         console.error(e.message);
+
+        errorField.textContent = e.message;
     }
     
 }
@@ -149,14 +162,6 @@ function renderField(edges, nodes, svg) {
 }
 
 async function refreshView(svg){
-    const loadingHeaderField = document.getElementById("LoadingHeader");
-
-    const idField = document.getElementById("UserID");
-    const nodesBudgetField = document.getElementById("UserNodesBudget");
-    const edgesBudgetField = document.getElementById("UserEdgesBudget");
-
-    const nodesCountField = document.getElementById("NodesCount");
-    const edgesCountField = document.getElementById("EdgesCount");
     
     try{
         const sessionData = await startSession()
@@ -180,6 +185,8 @@ async function refreshView(svg){
         loadingHeaderField.textContent = "Error Loading"
 
         console.error(e.message)
+        
+        errorField.textContent = e.message;
     }
 }
 
