@@ -1,5 +1,8 @@
-﻿namespace EveryNode.Api.Models;
+﻿using Microsoft.EntityFrameworkCore;
 
+namespace EveryNode.Api.Models;
+
+[Index(nameof(Start.Id), nameof(End.Id), IsUnique = true)]
 public class Edge
 {
     public int Id { get; set; }

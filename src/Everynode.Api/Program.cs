@@ -129,6 +129,8 @@ app.MapPost("/AddEdge", async (HttpContext http, CreateEdgeRequest req, AppDbCon
     if (req.StartId == req.EndId)
         return Results.BadRequest($"{placingUser.Username} Cannot connect node to itself");
     
+    if (endNode.Id < startNode.Id) (endNode, startNode) = (startNode, endNode);
+    
     if (startNode.Owner.Id != placingUser.Id && endNode.Owner.Id != placingUser.Id)
         return Results.BadRequest($"{placingUser.Username} Cannot connect two not owned nodes");
     
